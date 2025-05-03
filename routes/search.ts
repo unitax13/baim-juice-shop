@@ -23,10 +23,19 @@ export function searchProducts() {
     logger.warn(`Siemanp2222`);
     let criteria: any = req.query.q === "undefined" ? "" : req.query.q ?? "";
     criteria = criteria.length <= 200 ? criteria : criteria.substring(0, 200);
+    let queryString = `SELECT * FROM Products WHERE ((name LIKE '%${criteria}%' OR description LIKE '%${criteria}%') AND deletedAt IS NULL) ORDER BY name`;
+    logger.warn("Applying query" + queryString);
+    // models.sequelize
+    //   .query(queryString) // vuln-code-snippet vuln-line unionSqlInjectionChallenge dbSchemaChallenge
     models.sequelize
       .query(
-        `SELECT * FROM Products WHERE ((name LIKE '%${criteria}%' OR description LIKE '%${criteria}%') AND deletedAt IS NULL) ORDER BY name`
-      ) // vuln-code-snippet vuln-line unionSqlInjectionChallenge dbSchemaChallenge
+        `SELECT * FROM Products 
+   WHERE ((name LIKE :search OR description LIKE :search) AND deletedAt IS NULL) 
+   ORDER BY name`,
+        {
+          replacements: { search: `%${criteria}%` },
+        }
+      )
       .then(([products]: any) => {
         const dataString = JSON.stringify(products);
         if (challengeUtils.notSolved(challenges.unionSqlInjectionChallenge)) {
